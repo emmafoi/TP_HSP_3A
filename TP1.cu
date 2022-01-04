@@ -6,6 +6,14 @@
 #include <cuda_runtime.h>
 #include <cstdlib> //pour le rand
 
+/* on répertorie comme dans un fichier h*/
+void MatrixInit(float *M, int n, int p);
+void MatrixPrint(float *M, int n, int p);
+__host__ void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p);
+__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n, int p);
+void MatrixMult(float *M1, float *M2, float *Mout, int n);
+__global__ void cudaMatrixMult(float *M1, float *M2, float *Mout, int n);
+
 void MatrixInit(float *M, int n, int p){
     for (int i = 0; i < n*p; i++){
         M[i] = (rand() % 3) -1;
@@ -44,7 +52,7 @@ void MatrixMult(float *M1, float *M2, float *Mout, int n){
     }
 }
 
-__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n){
+__global__ void cudaMatrixMult(float *M1, float *M2, float *Mout, int n){
     int idx = threadIdx.x;
     for (int i = 1; i < n ; i++){
         Mout[idx] = M1[idx + i*n]*M2[i + idx-idx%n];
@@ -127,7 +135,7 @@ int main(){
     //addition
     cudaMatrixAdd<<<n,p>>>(d_a,d_b,d_out,n,p);
     //multiplication
-    cudaMatrixAdd<<<n,p>>>(d_a2,d_b2,d_out2,n);
+    cudaMatrixMult<<<n,n>>>(d_a2,d_b2,d_out2,n);
     
     //récupération des données sur le cpu
     cudaMemcpy(out1, d_out, ARRAY_BYTES, cudaMemcpyDeviceToHost);
