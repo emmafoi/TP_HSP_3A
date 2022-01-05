@@ -43,19 +43,29 @@ __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
 }
 
 void MatrixMult(float *M1, float *M2, float *Mout, int n){
-    for(int i = 0; i < n; i++){
-        for(int j = 0; j<n; j++){
-            for (int k = 0; k<n ; k++){
-                Mout[i+j*n] = M1[i+k*n] * M2[k+j*n];
+    for(int row = 0; row < n; row++){
+        for(int col = 0; col < n; col++){
+            int tmp = 0;
+            for( int i = 0; i < n; i++){
+                tmp += M1[row * n + i] * M2[i * n + col];
             }
+            //Write back the result
+            Mout[row * n + col] = tmp;
         }
     }
 }
 
 __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout, int n){
-    int idx = threadIdx.x;
-    for (int i = 1; i < n ; i++){
-        Mout[idx] = M1[idx + i*n]*M2[i + idx-idx%n];
+    int col = blockIdx.x * blockDim.x +threadIdx.x;
+    int row = blockIdx.y * blockDim.y +threadIdx.y;
+    if(row < n && col < n){
+        //Accumulate a partial result
+        int tmp = 0;
+        for( int i = 0; i < n; i++){
+            tmp += M1[row * n + i] * M2[i * n + col];
+        }
+        //Write back the result
+        Mout[row * n + col] = tmp;
     }
 }
 
