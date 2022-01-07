@@ -17,14 +17,14 @@ __global__ void cudaMoyen2(float *E, float *F, int n);
 // 3.1
 
 void MatrixInitRand(float *M, int n){
-    for (int i = 0; i < n*n; i++){
+    for (int i = 0; i < n; i++){
         M[i] = (float)(rand()%1000)/1000 ; 
         //flottant entre 0 et 1 de précision 10⁻3
     }
 }
 
 void MatrixInitZero(float *M, int n){
-    for (int i = 0; i < n*n; i++){
+    for (int i = 0; i < n; i++){
         M[i] = 0 ; 
         //flottant entre 0 et 1 de précision 10⁻3
     }
