@@ -30,13 +30,17 @@ void MatrixInitZero(float *M, int n){
     }
 }
 
-void MatrixPrint(float *M, int n){
-    for (int i = 0; i < n ; i++){
+//nb_mat est le nombre de matrices
+//n c'est la taille de la matrice n*n
+void MatrixPrint(float *M, int n,int nb_mat){
+    for (int i = 0; i < n*n*nb_mat ; i++){
         if((i+1)%n ==0){
-            printf("%f\n",M[i]);
+            printf("%1.5f\n",M[i]);
+            if(i%n*n ==0){printf("\n");}
         }else{
-            printf("%f ",M[i]);
+            printf("%1.5f ",M[i]);
         }
+        
     }
 }
 
