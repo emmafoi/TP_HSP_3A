@@ -40,8 +40,6 @@ __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
     int col = blockIdx.x; //premier élément dans l'appel à la fonction
     int row = threadIdx.x; //deuxième élément dans l'appel à la fonction
     Mout[row*n + col] = M1[row*n + col] + M2[row*n + col];
-    
-    printf("Hello\n");
     //pour lancer le thread, on fait cudaMatrixAdd<<<n,p>>>(M1,M2,Mout,n,p)
 }
 
@@ -147,7 +145,6 @@ int main(){
     
     //calcul sur gpu
     //addition : on fait n blocks de p threads
-    printf("Ici\n");
     cudaMatrixAdd<<<n,p>>>(d_a,d_b,d_out,n,p);
     //multiplication : on fait n blocks de n threads
     cudaMatrixMult<<<n,n>>>(d_a2,d_b2,d_out2,n);
