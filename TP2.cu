@@ -48,11 +48,27 @@ __global__ void cudaConv(float *E, float *F, float *S){
     S[idx] = E[idx] * F[idx];
 }
 
-/* A REPRENDRE*/
-__global__ void cudaMoyen2(float *E, float *F, int n){
-    // n = taille d'une ligne de la matrice
-    int idx = threadIdx.x;
-    S[idx] = (float)((E[idx] + E[idx+1] + E[idx + n] + E[idx + n + 1] )/4);
+__global__ void cudaMoyen2(float *E, float *S, int n){
+    // n = taille d'une ligne de E (et aussi d'une colonne)
+    
+    //1er élément du 1er dim3 = nombre matrices 2D de E
+    int nb_mat = blockIdx.x;
+    //nb_mat * taille d'une matrice de S (= taille du shift dans l'indice de S):
+    int shift_S = nb_mat * n/2 * n/2 ;
+    //nb_mat * taille d'une matrice de E (= taille du shift dans l'indice de E):
+    int shift_E = nb_mat * n * n ;
+    
+    //2e élément du 1er dim3 = nombre de colonnes/2 de E = nombre de col de S
+    int output_col = blockIdx.y; 
+    //2e dim3 (contient 1 seul élément) = nombre de lignes/2 de E = nombre de lignes de S
+    int output_row = threadIdx.x;
+    
+    //on se déplace de 2 en 2 dans les matrices d'entrée
+    int input_col = 2 * output_col;
+    int input_row = 2 * output_row;
+    
+    //Calcul de S en fonction de E :
+    S[shift_S + output_row * n + output_col] = (float)(( E[shift_E + input_row * n + input_col] + E[shift_E + (input_row+1) * n + input_col] + E[shift_E + input_row * n + (input_col+1)] + E[shift_E + (input_row+1) * n + (input_col+1)] )/4);
 }
 
 
@@ -125,8 +141,11 @@ int main(){
     cudaMemcpy(C1_data, d_C1_data, ARRAY_BYTES2, cudaMemcpyDeviceToHost);
     
     
-    // Layer 3 : moyenneur
-    cudaMoyen2<<<n31, n31, n32>>>(d_C1_data,d_S1_data, n31);
+   // Layer 3 : moyenneur
+    dim3 my_blocks (n32, n31, 1) // taille = 6 * 28, on préfère regrouper comme ça
+    //plutôt que 28*28 qui sera + gros 
+    cudaMoyen2<<< my_blocks, n31>>>(d_C1_data,d_S1_data, n31);
+    //ici, n32 = blockId.x et n31 = blockId.y pour se repérer dans la fonction
     
     
     
