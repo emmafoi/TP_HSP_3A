@@ -37,9 +37,12 @@ __host__ void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
 }
 
 __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
-    int idx = threadIdx.x;
-    Mout[idx] = M1[idx] + M2[idx];
-    //pour lancer le thread, on fait cudaMatrixAdd<<<1,n*p>>>(M1,M2,Mout,n,p)
+    int col = blockIdx.x; //premier élément dans l'appel à la fonction
+    int row = threadIdx.x; //deuxième élément dans l'appel à la fonction
+    Mout[row*n + col] = M1[row*n + col] + M2[row*n + col];
+    
+    printf("Hello\n");
+    //pour lancer le thread, on fait cudaMatrixAdd<<<n,p>>>(M1,M2,Mout,n,p)
 }
 
 void MatrixMult(float *M1, float *M2, float *Mout, int n){
@@ -56,8 +59,8 @@ void MatrixMult(float *M1, float *M2, float *Mout, int n){
 }
 
 __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout, int n){
-    int col = blockIdx.x * blockDim.x +threadIdx.x;
-    int row = blockIdx.y * blockDim.y +threadIdx.y;
+    int col = blockIdx.x; //premier élément dans l'appel à la fonction
+    int row = threadIdx.x; //deuxième élément dans l'appel à la fonction
     if(row < n && col < n){
         //Accumulate a partial result
         int tmp = 0;
@@ -72,18 +75,19 @@ __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout, int n){
 
 int main(){
     
+    //tailles des matrices
     int n = 2;
     int p = 3;
     
-    //pour l'addition
+    //taille en mémoire des matrices pour l'addition
     const int ARRAY_SIZE = n*p;
     const int ARRAY_BYTES = ARRAY_SIZE * sizeof(float);
     
-    //pour la multiplication
+    //taille en mémoire des matrices pour la multiplication
     const int ARRAY_SIZE2 = n*n;
     const int ARRAY_BYTES2 = ARRAY_SIZE2 * sizeof(float);
     
-    // variables host + allocation de mémoire
+    // variables host + allocation de mémoire sur CPU
     // pour l'addition
     float *a, *b, *out;
     a   = (float*)malloc(ARRAY_BYTES);
@@ -95,7 +99,7 @@ int main(){
     b2   = (float*)malloc(ARRAY_BYTES2);
     out2 = (float*)malloc(ARRAY_BYTES2);
     
-    //initialisation :
+    //initialisation des matrices tests:
     //pour l'addition
     MatrixInit(a, n, p);
     MatrixInit(b, n, p);
@@ -124,7 +128,7 @@ int main(){
     MatrixPrint(out2, n, n);
     
     //calcul GPU
-    // variables device + allocation de mémoire
+    // variables device + allocation de mémoire sur GPU
     float *d_a, *d_b, *d_out, *out1, *d_a2, *d_b2, *d_out2, *out22;
     cudaMalloc((void **) &d_a, ARRAY_BYTES);
     cudaMalloc((void **) &d_b, ARRAY_BYTES);
@@ -135,19 +139,20 @@ int main(){
     out1 = (float*)malloc(ARRAY_BYTES);
     out22 = (float*)malloc(ARRAY_BYTES2);
     
-    //transfert de données pour le calcul sur gpu
+    //transfert de données CPU vers GPU pour le calcul sur gpu
     cudaMemcpy(d_a, a, ARRAY_BYTES, cudaMemcpyHostToDevice);
     cudaMemcpy(d_b, b, ARRAY_BYTES, cudaMemcpyHostToDevice);
     cudaMemcpy(d_a2, a2, ARRAY_BYTES2, cudaMemcpyHostToDevice);
     cudaMemcpy(d_b2, b2, ARRAY_BYTES2, cudaMemcpyHostToDevice);
     
     //calcul sur gpu
-    //addition
+    //addition : on fait n blocks de p threads
+    printf("Ici\n");
     cudaMatrixAdd<<<n,p>>>(d_a,d_b,d_out,n,p);
-    //multiplication
+    //multiplication : on fait n blocks de n threads
     cudaMatrixMult<<<n,n>>>(d_a2,d_b2,d_out2,n);
     
-    //récupération des données sur le cpu
+    //récupération des données du GPU vers le CPU
     cudaMemcpy(out1, d_out, ARRAY_BYTES, cudaMemcpyDeviceToHost);
     cudaMemcpy(out22, d_out2, ARRAY_BYTES2, cudaMemcpyDeviceToHost);
     
@@ -158,13 +163,14 @@ int main(){
     MatrixPrint(out22, n, n);
     
     //libération des ressources 
+    // sur GPU :
     cudaFree(d_a);
     cudaFree(d_b);
     cudaFree(d_out);
     cudaFree(d_a2);
     cudaFree(d_b2);
     cudaFree(d_out2);
-
+    // sur CPU
     free(a);
     free(b);
     free(a2);
