@@ -10,7 +10,7 @@
 
 void MatrixInitRand(float *M, int n);
 void MatrixInitZero(float *M, int n);
-void MatrixPrint(float *M, int n);
+void MatrixPrint(float *M, int n, int nb_mat);
 __global__ void cudaConv(float *E, float *F, float *S);
 __global__ void cudaMoyen2(float *E, float *F, int n);
 
@@ -33,14 +33,17 @@ void MatrixInitZero(float *M, int n){
 //nb_mat est le nombre de matrices
 //n c'est la taille de la matrice n*n
 void MatrixPrint(float *M, int n,int nb_mat){
-    for (int i = 0; i < n*n*nb_mat ; i++){
-        if((i+1)%n ==0){
-            printf("%1.5f\n",M[i]);
-            if(i%n*n ==0){printf("\n");}
-        }else{
-            printf("%1.5f ",M[i]);
+    for (int third_dim = 0; third_dim< nb_mat ; third_dim ++){
+        for (int i = 0; i< n*n-1 ; i++){
+            if((i+1)%n == 0){ //fin de ligne
+                printf("%1.5f\n",M[i + third_dim*n*n]); //retour à la ligne
+            }else{
+                printf("%1.5f ",M[i + third_dim*n*n]);
+            }
+            
         }
-        
+        //le dernier élément de ma matrice : double retour à la ligne
+        printf("%1.5f\n\n",M[(n*n-1) + third_dim*n*n]);
     }
 }
 
@@ -118,7 +121,7 @@ int main(){
     MatrixInitRand(C1_kernel, ARRAY_SIZE4);
     
     // pour tester :
-    //MatrixPrint(C1_data, n21* n21* n22);
+    //MatrixPrint(C1_data, n21, n22);
     
     
     // 3.2
