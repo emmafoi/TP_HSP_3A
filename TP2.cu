@@ -142,7 +142,7 @@ int main(){
     
     
    // Layer 3 : moyenneur
-    dim3 my_blocks (n32, n31, 1) // taille = 6 * 28, on préfère regrouper comme ça
+    dim3 my_blocks (n32, n31, 1); // taille = 6 * 28, on préfère regrouper comme ça
     //plutôt que 28*28 qui sera + gros 
     cudaMoyen2<<< my_blocks, n31>>>(d_C1_data,d_S1_data, n31);
     //ici, n32 = blockId.x et n31 = blockId.y pour se repérer dans la fonction
