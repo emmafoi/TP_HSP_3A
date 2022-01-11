@@ -8,30 +8,38 @@
 #include <cuda_runtime.h>
 #include <cstdlib>
 
+/*-----------------------------------------------------Déclaration des fonctions-----------------------------------------------------------*/
+
 void MatrixInitRand(float *M, int n);
 void MatrixInitZero(float *M, int n);
 void MatrixPrint(float *M, int n, int nb_mat);
 __global__ void cudaConv(float *E, float *F, float *S);
 __global__ void cudaMoyen2(float *E, float *F, int n);
 
+
+/*-----------------------------------------------------Définition des fonctions------------------------------------------------------------*/
+
 // 3.1
 
+/* Initialisation aléatoire d'une matrice M de taille n*n par des flottants aléatoires compris entre 0 et 1 avec une précision de 10⁻5 */
 void MatrixInitRand(float *M, int n){
     for (int i = 0; i < n; i++){
-        M[i] = (float)(rand()%1000)/1000 ; 
-        //flottant entre 0 et 1 de précision 10⁻3
+        M[i] = (float)(rand()%100000)/100000 ; 
+        //flottant entre 0 et 1 de précision 10⁻5
     }
 }
 
+/* Initialisation d'une matrice C de taille n*n avec des zéros */
 void MatrixInitZero(float *M, int n){
     for (int i = 0; i < n; i++){
         M[i] = 0 ; 
-        //flottant entre 0 et 1 de précision 10⁻3
     }
 }
 
-//nb_mat est le nombre de matrices
-//n c'est la taille de la matrice n*n
+/* Affichage d'une matrice M de dimension nb_mat*n*n (3D ou 2D lorsque nb_mat = 1) 
+nb_mat = nombre de matrices = 3e dimension
+n = taille de la matrice carrée
+*/
 void MatrixPrint(float *M, int n,int nb_mat){
     for (int third_dim = 0; third_dim< nb_mat ; third_dim ++){
         for (int i = 0; i< n*n-1 ; i++){
@@ -49,25 +57,32 @@ void MatrixPrint(float *M, int n,int nb_mat){
 
 // 3.2
 
-/* A REPRENDRE*/
+/* SAMANE */
 __global__ void cudaConv(float *E, float *F, float *S){
-    int idx = threadIdx.x;
-    S[idx] = E[idx] * F[idx];
+    
 }
 
+/* fonction moyenneur executée sur GPU 
+L'argument de la fonction correspond à la dimension de la matrice d'entrée
+Les nombres de blocks et threads sont ceux de la matrice d'arrivés car le nombre de calculs corespond au nombre d'éléments à l'arrivée
+*/
 __global__ void cudaMoyen2(float *E, float *S, int n){
     // n = taille d'une ligne de E (et aussi d'une colonne)
     
+    int n_out = n/2; // dimension de la matrice de sortie
+    
     //1er élément du 1er dim3 = nombre matrices 2D de E
     int nb_mat = blockIdx.x;
+    
     //nb_mat * taille d'une matrice de S (= taille du shift dans l'indice de S):
-    int shift_S = nb_mat * n/2 * n/2 ;
+    int shift_S = nb_mat * n_out * n_out ;
     //nb_mat * taille d'une matrice de E (= taille du shift dans l'indice de E):
     int shift_E = nb_mat * n * n ;
     
     //2e élément du 1er dim3 = nombre de colonnes/2 de E = nombre de col de S
     int output_col = blockIdx.y; 
-    //2e dim3 (contient 1 seul élément) = nombre de lignes/2 de E = nombre de lignes de S
+    
+    //2e dim3 (contient 1 seul élément) = nombre de lignes/2 de E =  nombre de lignes de S
     int output_row = threadIdx.x;
     
     //on se déplace de 2 en 2 dans les matrices d'entrée
@@ -75,9 +90,11 @@ __global__ void cudaMoyen2(float *E, float *S, int n){
     int input_row = 2 * output_row;
     
     //Calcul de S en fonction de E :
-    S[shift_S + output_row * n + output_col] = (float)(( E[shift_E + input_row * n + input_col] + E[shift_E + (input_row+1) * n + input_col] + E[shift_E + input_row * n + (input_col+1)] + E[shift_E + (input_row+1) * n + (input_col+1)] )/4);
+    S[shift_S + output_row * n_out + output_col] = (float)(( E[shift_E + input_row * n + input_col] + E[shift_E + (input_row+1) * n + input_col] + E[shift_E + input_row * n + (input_col+1)] + E[shift_E + (input_row+1) * n + (input_col+1)] )/4);
 }
 
+
+/*-----------------------------------------------------------Programme principal-------------------------------------------------------------*/
 
 int main(){
     
@@ -116,12 +133,17 @@ int main(){
      
     //initialisation :
     MatrixInitRand(raw_data, ARRAY_SIZE1);
-    MatrixInitZero(C1_data, ARRAY_SIZE2);
+    
+    /* TEST DE KA FINCTION MOY*/
+    //MatrixInitZero(C1_data, ARRAY_SIZE2);
+    MatrixInitRand(C1_data, ARRAY_SIZE2);
+    
     MatrixInitZero(S1_data, ARRAY_SIZE3);
     MatrixInitRand(C1_kernel, ARRAY_SIZE4);
     
-    // pour tester :
-    //MatrixPrint(C1_data, n21, n22);
+    // Affichage de la matrice de données
+    printf("matrice raw_data\n");
+    MatrixPrint(raw_data, n1,1);
     
     
     // 3.2
@@ -142,19 +164,27 @@ int main(){
     cudaMemcpy(d_C1_kernel, C1_kernel, ARRAY_BYTES4, cudaMemcpyHostToDevice);
     
     // Layer 2 : convolution
-    cudaConv<<<n21, n21, n22>>>(d_raw_data,d_C1_data, d_C1_kernel);
+    dim3 my_blockss (n22, n21, 1); 
+    cudaConv<<< my_blockss, n21>>>(d_raw_data,d_C1_data, d_C1_kernel);
     
     //récupération des données sur le cpu
     cudaMemcpy(C1_data, d_C1_data, ARRAY_BYTES2, cudaMemcpyDeviceToHost);
     
+    //Affichage du résultat
+    printf("matrice après convolution\n");
+    MatrixPrint(C1_data, n21, n22);
     
    // Layer 3 : moyenneur
-    dim3 my_blocks (n32, n31, 1); // taille = 6 * 28, on préfère regrouper comme ça
-    //plutôt que 28*28 qui sera + gros 
-    cudaMoyen2<<< my_blocks, n31>>>(d_C1_data,d_S1_data, n31);
-    //ici, n32 = blockId.x et n31 = blockId.y pour se repérer dans la fonction
+    dim3 my_blocks (n32, n31, 1); // taille de la matrice d'entrée
+    cudaMoyen2<<< my_blocks, n31>>>(d_C1_data,d_S1_data, n21);
+    //n22 = blockId.x et n21 = blockId.y
     
+    //récupération des données sur le cpu
+    cudaMemcpy(S1_data, d_S1_data, ARRAY_BYTES3, cudaMemcpyDeviceToHost);
     
+    //Affichage du résultat
+    printf("matrice après moyenneur\n");
+    MatrixPrint(S1_data, n31, n32);
     
     //libération des ressources 
     cudaFree(d_raw_data);
