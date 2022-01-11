@@ -12,9 +12,12 @@
 
 void MatrixInitRand(float *M, int n);
 void MatrixInitZero(float *M, int n);
+void MatrixInitZerosAndOnes(float *M, int n);
+void MatrixInitDamier2x2(float *M, int n);
 void MatrixPrint(float *M, int n, int nb_mat);
 __global__ void cudaConv(float *E, float *F, float *S);
 __global__ void cudaMoyen2(float *E, float *F, int n);
+__device__ float activation_tanh(float M);
 
 
 /*-----------------------------------------------------Définition des fonctions------------------------------------------------------------*/
@@ -29,12 +32,46 @@ void MatrixInitRand(float *M, int n){
     }
 }
 
-/* Initialisation d'une matrice C de taille n*n avec des zéros */
+/* Initialisation d'une matrice M de taille n*n avec des zéros */
 void MatrixInitZero(float *M, int n){
     for (int i = 0; i < n; i++){
         M[i] = 0 ; 
     }
 }
+
+/* Initialisation d'une matrice M de taille n*n avec une alternance de zéros et de uns */
+void MatrixInitZerosAndOnes(float *M, int n){
+    M[0]=1;
+    for (int i = 1; i < n; i++){
+        M[i] = (float)fmod(M[i-1] + 1,2) ; 
+    }
+}
+
+/* Initialisation d'une matrice M de taille n*n avec un damier de zéros et de uns 2x2 
+On suppose que M est de taille n/2 * n/2 (2D) 
+*/
+
+/* Initialisation d'une matrice M de taille n*n (supposée en 2D) avec un damier de zéros et de uns 2x2
+*/
+void MatrixInitDamier2x2(float *M, int n){
+    int middle = n/2;
+    
+    //on commence par initialiser à zéro la matrice
+    for (int i = 0; i < n*n; i++){ //on parcourt toute la matrice
+        M[i] = 0 ; 
+    }
+    
+    //puis on met des 1 dans 2 cases (=ensemble de pixels) pour former le damier
+    for (int i = 0; i < middle; i++){
+        // i = row
+        for (int j = 0; j < middle; j++){
+            // j = column
+            M[ i * n + j] = 1; // 1e case du damier
+            M[ (i + middle) * n + ( j + middle)] = 1 ; //2e case du damier : on rajoute un shift à la ligne et à la colonne pour continuer dans la diagonale
+        }
+    }
+}
+
 
 /* Affichage d'une matrice M de dimension nb_mat*n*n (3D ou 2D lorsque nb_mat = 1) 
 nb_mat = nombre de matrices = 3e dimension
@@ -89,10 +126,15 @@ __global__ void cudaMoyen2(float *E, float *S, int n){
     int input_col = 2 * output_col;
     int input_row = 2 * output_row;
     
-    //Calcul de S en fonction de E :
+    //Calcul pour chaque élément de S la moyenne en fonction des éléments de E :
     S[shift_S + output_row * n_out + output_col] = (float)(( E[shift_E + input_row * n + input_col] + E[shift_E + (input_row+1) * n + input_col] + E[shift_E + input_row * n + (input_col+1)] + E[shift_E + (input_row+1) * n + (input_col+1)] )/4);
+    
 }
 
+
+__device__ float activation_tanh(float M){
+    return tanhf(M);
+}
 
 /*-----------------------------------------------------------Programme principal-------------------------------------------------------------*/
 
@@ -132,11 +174,13 @@ int main(){
     
      
     //initialisation :
-    MatrixInitRand(raw_data, ARRAY_SIZE1);
+    /* Test de la fonction d'initalisation en damier */
+    //MatrixInitRand(raw_data, ARRAY_SIZE1);
+    MatrixInitDamier2x2(raw_data, n1);
     
-    /* TEST DE KA FINCTION MOY*/
+    /* TEST DE LA FONCTION MOY*/
     //MatrixInitZero(C1_data, ARRAY_SIZE2);
-    MatrixInitRand(C1_data, ARRAY_SIZE2);
+    MatrixInitZerosAndOnes(C1_data, ARRAY_SIZE2);
     
     MatrixInitZero(S1_data, ARRAY_SIZE3);
     MatrixInitRand(C1_kernel, ARRAY_SIZE4);
