@@ -6,14 +6,6 @@
 #include <cuda_runtime.h>
 #include <cstdlib> //pour le rand
 
-/* on répertorie comme dans un fichier h*/
-void MatrixInit(float *M, int n, int p);
-void MatrixPrint(float *M, int n, int p);
-__host__ void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p);
-__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n, int p);
-void MatrixMult(float *M1, float *M2, float *Mout, int n);
-__global__ void cudaMatrixMult(float *M1, float *M2, float *Mout, int n);
-
 void MatrixInit(float *M, int n, int p){
     for (int i = 0; i < n*p; i++){
         M[i] = (rand() % 3) -1;
