@@ -53,22 +53,27 @@ On suppose que M est de taille n/2 * n/2 (2D)
 
 /* Initialisation d'une matrice M de taille n*n (supposée en 2D) avec un damier de zéros et de uns 2x2
 */
-void MatrixInitDamier2x2(float *M, int n){
+void MatrixInitDamier2x2(float *M, int n, int nb_mat){
     int middle = n/2;
     
     //on commence par initialiser à zéro la matrice
-    for (int i = 0; i < n*n; i++){ //on parcourt toute la matrice
+    for (int i = 0; i < n*n*nb_mat; i++){ //on parcourt toute la matrice
         M[i] = 0 ; 
     }
     
     //puis on met des 1 dans 2 cases (=ensemble de pixels) pour former le damier
-    for (int i = 0; i < middle; i++){
-        // i = row
-        for (int j = 0; j < middle; j++){
-            // j = column
-            M[ i * n + j] = 1; // 1e case du damier
-            M[ (i + middle) * n + ( j + middle)] = 1 ; //2e case du damier : on rajoute un shift à la ligne et à la colonne pour continuer dans la diagonale
+    for (int k = 0; k< nb_mat; k++){
+        for (int i = 0; i < middle; i++){
+            // i = row
+            for (int j = 0; j < middle; j++){
+                // j = column
+                // n*n*k = shift d'une matrice à l'autre
+                M[ i * n + j + n*n*k] = 1; // 1e case du damier
+                M[ (i + middle) * n + ( j + middle) + n*n*k] = 1 ; //2e case du damier : 
+                //on rajoute un shift à la ligne et à la colonne pour continuer dans la diagonale
+            }
         }
+    
     }
 }
 
